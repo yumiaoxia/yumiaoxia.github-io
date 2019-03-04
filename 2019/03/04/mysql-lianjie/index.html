@@ -1,0 +1,148 @@
+<!DOCTYPE html><html lang="zh-CN,zh-Hans,default"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><meta name="keywords" content="java,软件开发,全栈开发,java开发,Java技术"><title>理解mysql之内连接，外连接，全连接 | Shermanの博客</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">理解mysql之内连接，外连接，全连接</h1><a id="logo" href="/.">Shermanの博客</a><p class="description">轻轻地走过，一路漫长...</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="Arama"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title">理解mysql之内连接，外连接，全连接</h1><div class="post-meta"><a href="/2019/03/04/mysql-lianjie/#comments" class="comment-count"><i id="changyan_count_unit" data-xid="2019/03/04/mysql-lianjie/"></i>留言,<i id="changyan_parti_unit" data-xid="2019/03/04/mysql-lianjie/"></i>参与</a><p><span class="date">Mar 04, 2019</span><span><a href="/categories/数据库-mysql/" class="category">数据库/mysql</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><h2 id="一-前言"><a href="#一-前言" class="headerlink" title="一. 前言"></a>一. 前言</h2><p>SQL语法，select 语句可以通过连接多个表来检索数据。表与表之间的连接关系可分为内链接，外连接和全连接。我们最常用的是内连接；外连接分为左外连接和右外连接；全连接是一般很少用，它查询的结果集记录数是查询的各个表的记录数的乘积。下面详细介绍这几种连接。</p>
+<p>我们创建两个标为例子：</p>
+<p>学生（student）表：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"> <span class="keyword">create</span> <span class="keyword">table</span> student(</span><br><span class="line">    <span class="keyword">id</span> <span class="built_in">int</span> primary <span class="keyword">key</span>,</span><br><span class="line">    <span class="keyword">name</span> <span class="built_in">varchar</span>(<span class="number">20</span>) <span class="keyword">not</span> <span class="literal">null</span></span><br><span class="line">)<span class="keyword">engine</span>=<span class="keyword">Innodb</span> <span class="keyword">default</span> <span class="keyword">charset</span>=utf8mb4;</span><br></pre></td></tr></table></figure>
+<p>课程（course）表:</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"> <span class="keyword">create</span> <span class="keyword">table</span> course(</span><br><span class="line">    <span class="keyword">id</span> <span class="built_in">int</span> primary <span class="keyword">key</span>,</span><br><span class="line">    cname <span class="built_in">varchar</span>(<span class="number">30</span>) <span class="keyword">not</span> <span class="literal">null</span></span><br><span class="line">)<span class="keyword">engine</span> = <span class="keyword">INNODB</span> <span class="keyword">default</span> <span class="keyword">charset</span> = utf8mb4;</span><br></pre></td></tr></table></figure>
+<p>学生课程关系表：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">create</span> <span class="keyword">table</span> students_courses(</span><br><span class="line">cid <span class="built_in">int</span> <span class="keyword">REFERENCES</span> course(<span class="keyword">id</span>),</span><br><span class="line"><span class="keyword">sid</span> <span class="built_in">int</span> <span class="keyword">REFERENCES</span> student(<span class="keyword">id</span>)</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+<p>插入以下数据：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">insert</span> <span class="keyword">into</span> student <span class="keyword">values</span>(<span class="number">1</span>,<span class="string">"Timmy"</span>),(<span class="number">2</span>,<span class="string">"Smith"</span>),(<span class="number">3</span>,<span class="string">"Jhon"</span>),(<span class="number">4</span>,<span class="string">"Petter"</span>);</span><br><span class="line"></span><br><span class="line"><span class="keyword">insert</span> <span class="keyword">into</span> course <span class="keyword">values</span>(<span class="number">1</span>,<span class="string">'English'</span>),(<span class="number">2</span>,<span class="string">'Math'</span>),(<span class="number">3</span>,<span class="string">'Music'</span>);</span><br><span class="line"></span><br><span class="line"><span class="keyword">insert</span> <span class="keyword">into</span> course <span class="keyword">values</span>(<span class="number">1</span>,<span class="number">2</span>),(<span class="number">2</span>,<span class="number">3</span>),(<span class="number">1</span>,<span class="number">1</span>),(<span class="number">2</span>,<span class="number">1</span>);</span><br></pre></td></tr></table></figure>
+<h2 id="二-内连接"><a href="#二-内连接" class="headerlink" title="二. 内连接"></a>二. 内连接</h2><p>内连接是最广泛使用的连接方式，语法标准格式是：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> property1,property2,... <span class="keyword">from</span> t1,t2,... <span class="keyword">where</span> expr;</span><br></pre></td></tr></table></figure>
+<p>例1：查询所有学生和他们选修的课程</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> s.name,c.cname <span class="keyword">from</span> student s,course c,students_courses sc <span class="keyword">where</span> s.id = sc.sid <span class="keyword">and</span> sc.cid = c.id;</span><br></pre></td></tr></table></figure>
+<p>显示结果如下:</p>
+<pre><code>| name  | cname   |
+|-------|---------|
+| Smith | English |
+| Jhon  | Math    |
+| Timmy | English |
+| Timmy | Math    |
+</code></pre><h2 id="三-左连接、右连接"><a href="#三-左连接、右连接" class="headerlink" title="三. 左连接、右连接"></a>三. 左连接、右连接</h2><p>​    左连接和右连接统称为外连接，左连接也可叫为左外连接，右连接也可叫为右外连接。</p>
+<p>​    左连接不仅匹配类似前面的行记录，而且还显示左边的表有而右边的表中五匹配的行，对于这样的行，右边表不匹配的列均被显示为NULL。这样每一条匹配的行都从左边的表被选出，如果右边表有一个匹配的行，则被选中，如果不匹配，行仍然被选中，只不过，右边表响应的列在结果集中均设为null。也就是，LEFT JOIN 强制包含左边表的每一行，而不管右边表是否匹配。</p>
+<p>标准语法：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> property1,property2,... <span class="keyword">from</span> left_table <span class="keyword">left</span> <span class="keyword">join</span> right_table <span class="keyword">on</span> expr;</span><br></pre></td></tr></table></figure>
+<p>例2：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> student s <span class="keyword">left</span> <span class="keyword">join</span> course c <span class="keyword">on</span> s.id=c.id;</span><br></pre></td></tr></table></figure>
+<p>结果如下：</p>
+<pre><code>| id | name   | id   | cname   |
+|----|--------|------|---------|
+|  1 | Timmy  |    1 | English |
+|  2 | Smith  |    2 | Math    |
+|  3 | Jhon   |    3 | Music   |
+|  4 | Petter | NULL | NULL    |
+</code></pre><p>​    上面的结果，即用左边表的每一行与右边表匹配，如果匹配，则选择到结果集中，如果没有匹配，则结果集中右边表响应的列置为NULL。</p>
+<p>为了进一步理解，举出一个有点奇怪的例子，例3：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> student s <span class="keyword">left</span> <span class="keyword">join</span> course c <span class="keyword">on</span> s.id=<span class="number">1</span></span><br></pre></td></tr></table></figure>
+<p>结果显示：</p>
+<pre><code>| id | name   | id   | cname   |
+|----|--------|------|---------|
+|  1 | Timmy  |    1 | English |
+|  1 | Timmy  |    2 | Math    |
+|  1 | Timmy  |    3 | Music   |
+|  2 | Smith  | NULL | NULL    |
+|  3 | Jhon   | NULL | NULL    |
+|  4 | Petter | NULL | NULL    |
+</code></pre><p>​    结果最后三行似乎是你不希望看到的。然而如果 只有 ON 子句的条件，那么左边表的每一行都会返回，只是如果没有匹配到右边表（虽然本例没有约束course表）,那结果集中右边表的记录值为NULL。</p>
+<p>​    理解了了上面的内容，那么我们可以结合 WHERE 子句使用，这是一个非常有用的技巧。使用 IS NULL 和 IS NOT NULL操作符可以筛选出我们想要的记录。</p>
+<p>例4：基于例2的改造</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> student s <span class="keyword">left</span> <span class="keyword">join</span> course c <span class="keyword">on</span> s.id=c.id <span class="keyword">where</span> c.id <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">null</span>;</span><br></pre></td></tr></table></figure>
+<p>结果显示：</p>
+<pre><code>| id | name  | id | cname   |
+|----|-------|----|---------|
+|  1 | Timmy |  1 | English |
+|  2 | Smith |  2 | Math    |
+|  3 | Jhon  |  3 | Music   |
+</code></pre><p>​    这结果和【select * from student s,course c where s.id=c.id】 的结果是一样的。</p>
+<p>​    右连接和左连接的原理是一样的，举一反三相信也就很容易理解了。</p>
+<h2 id="四-全连接"><a href="#四-全连接" class="headerlink" title="四. 全连接"></a>四. 全连接</h2><p>全连接也叫笛卡尔积连接，看下面的一个例子。</p>
+<p>例5-1：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> student,course;</span><br></pre></td></tr></table></figure>
+<pre><code>| id | name   | id | cname   |
+|----|--------|----|---------|
+|  1 | Timmy  |  1 | English |
+|  1 | Timmy  |  2 | Math    |
+|  1 | Timmy  |  3 | Music   |
+|  2 | Smith  |  1 | English |
+|  2 | Smith  |  2 | Math    |
+|  2 | Smith  |  3 | Music   |
+|  3 | Jhon   |  1 | English |
+|  3 | Jhon   |  2 | Math    |
+|  3 | Jhon   |  3 | Music   |
+|  4 | Petter |  1 | English |
+|  4 | Petter |  2 | Math    |
+|  4 | Petter |  3 | Music   |
+</code></pre><p>例5-2：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> course，student;</span><br></pre></td></tr></table></figure>
+<pre><code>| id | cname   | id | name   |
+|----|---------|----|--------|
+|  1 | English |  1 | Timmy  |
+|  2 | Math    |  1 | Timmy  |
+|  3 | Music   |  1 | Timmy  |
+|  1 | English |  2 | Smith  |
+|  2 | Math    |  2 | Smith  |
+|  3 | Music   |  2 | Smith  |
+|  1 | English |  3 | Jhon   |
+|  2 | Math    |  3 | Jhon   |
+|  3 | Music   |  3 | Jhon   |
+|  1 | English |  4 | Petter |
+|  2 | Math    |  4 | Petter |
+|  3 | Music   |  4 | Petter |
+</code></pre><p>可以看到，结果集中3*4=12行，这就是全连接的结果，输出结果集的字段顺序是按 FROM 子句后面的表来显示的。</p>
+<p>全连接一般可以用在预测结果组合的可能性，例如下棋的下一步布局，雌雄繁殖匹配等等。</p>
+</div><div class="post-copyright"><blockquote><p>原文作者: Sherman</p><p>原文链接: <a href="https://blogs.yumiaoxia.com/2019/03/04/mysql-lianjie/">https://blogs.yumiaoxia.com/2019/03/04/mysql-lianjie/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"><a href="/tags/mysql/">mysql</a><a href="/tags/数据库/">数据库</a></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/03/04/hello-world/" class="next">Hello World</a></div><div id="comments"><div id="SOHUCS" sid="2019/03/04/mysql-lianjie/"></div></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#一-前言"><span class="toc-text">一. 前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#二-内连接"><span class="toc-text">二. 内连接</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#三-左连接、右连接"><span class="toc-text">三. 左连接、右连接</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#四-全连接"><span class="toc-text">四. 全连接</span></a></li></ol></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/03/04/mysql-lianjie/">理解mysql之内连接，外连接，全连接</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/03/04/hello-world/">Hello World</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/03/02/github-hexo搭建好看的个人自由博客/">github-hexo搭建好看的个人自由博客</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/03/02/my-first-blog/">my-first-blog </a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/工具/">工具</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据库-mysql/">数据库/mysql</a><span class="category-list-count">1</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"><a href="/tags/mysql/" style="font-size: 15px;">mysql</a> <a href="/tags/数据库/" style="font-size: 15px;">数据库</a> <a href="/tags/hexo/" style="font-size: 15px;">hexo</a> <a href="/tags/工具/" style="font-size: 15px;">工具</a> <a href="/tags/个人博客/" style="font-size: 15px;">个人博客</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li></ul></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">Sherman.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script><script>window._config = { showScore: true };
+(function(){ 
+  var appid = 'cyu77I3Js'; 
+  var conf = '6d3a1483ee22bba4eaff12ba9ff036ab'; 
+  var width = window.innerWidth || document.documentElement.clientWidth; 
+  var nodes =document.getElementsByTagName("head")[0]||document.head||document.documentElement;
+  if (/(Android|iPhone|iPad|iPod|iOS)/i.test(navigator.userAgent) && width < 750) {  
+      window.document.write('<script id="changyan_mobile_js" charset="utf-8" type="text/javascript" src="https://changyan.sohu.com/upload/mobile/wap-js/changyan_mobile.js?client_id=' + appid + '&conf=' + conf + '"><\/script>');
+  }
+  else { 
+    var loadJs=function(d,a){
+      var b=document.createElement("script");b.setAttribute("type","text/javascript");
+      b.setAttribute("charset","UTF-8");
+      b.setAttribute("src",d);
+      if(typeof a==="function"){if(window.attachEvent){b.onreadystatechange=function(){var e=b.readyState;if(e==="loaded"||e==="complete"){b.onreadystatechange=null;a()}}}else{b.onload=a}}
+      nodes.appendChild(b)
+    };
+    loadJs("https://changyan.sohu.com/upload/changyan.js",function(){window.changyan.api.config({appid:appid,conf:conf})}); 
+  } 
+  var loadCss = function(cssString){  
+    var style=document.createElement("style");  
+    style.setAttribute("type", "text/css");  
+    if(style.styleSheet){// IE  
+        style.styleSheet.cssText = cssString;  
+    } else {// w3c  
+        var cssText = document.createTextNode(cssString);  
+        style.appendChild(cssText);  
+    }
+    nodes.appendChild(style);
+  }
+  window.onload=function(){loadCss('.module-hot-topic,.module-cmt-float-bar{display:none!important}#SOHUCS #SOHU_MAIN .module-cmt-box .post-wrap-w .wrap-action-w .cbox-prompt-w span.prompt-empty-w,#SOHUCS #SOHU_MAIN .module-cmt-float-bar .wrap-cont-w .cont-form-w .form-text-w span.text-null,#SOHUCS #SOHU_MAIN .module-cmt-float-bar .wrap-cont-w .cont-minwidth-w div.cont-comment-w a.comment-link-w,#SOHUCS #SOHU_MAIN .module-cmt-float-bar .wrap-cont-w .cont-minwidth-w div.cont-comment-w span.comment-text-w,#SOHUCS #SOHU_MAIN .module-cmt-footer .section-service-w div.service-wrap-w a:hover,#SOHUCS #SOHU_MAIN .module-cmt-header .section-cbox-w .block-head-w div.header-login,#SOHUCS #SOHU_MAIN .module-cmt-header .section-title-w .title-user-w .user-wrap-w span.wrap-name-w,#SOHUCS #SOHU_MAIN .module-cmt-list .action-click-gw span.click-disable-eg a em.icon-name-bg,#SOHUCS #SOHU_MAIN .module-cmt-list .block-title-gw ul li div.title-name-gw,#SOHUCS #SOHU_MAIN .module-cmt-list .cmt-list-type .cmt-list-number .comment-number span.cy-number,#SOHUCS #SOHU_MAIN .module-cmt-list .cmt-list-type .cmt-list-number span.comment-number,#SOHUCS #SOHU_MAIN .module-cmt-list .cmt-list-type .type-lists li.active,#SOHUCS #SOHU_MAIN .module-cmt-list .msg-wrap-gw .wrap-action-gw .action-click-gw span a:hover,#SOHUCS #SOHU_MAIN .module-cmt-list .picture-box-gw div.box-action-gw a:hover,#SOHUCS #SOHU_MAIN .module-cmt-list .wrap-action-gw .action-click-gw span a:hover em.icon-name-bg,#SOHUCS #SOHU_MAIN .module-cmt-list .wrap-user-gw span.user-name-gw a{color:#40759b!important}#SOHUCS #SOHU_MAIN .module-cmt-box .post-wrap-w .post-wrap-border-t div.post-wrap-border-t-r,#SOHUCS #SOHU_MAIN .module-cmt-box .post-wrap-w div.post-wrap-border-l,#SOHUCS #SOHU_MAIN .module-cmt-box .post-wrap-w div.post-wrap-border-r{display:none!important}#SOHUCS #SOHU_MAIN .module-cmt-box .post-wrap-w .post-wrap-border-t div.post-wrap-border-t-l{background:#FFF!important;top:-2px!important}#SOHUCS #SOHU_MAIN .module-cmt-box .post-wrap-w .wrap-action-w .action-function-w .uploading-wrapper-dw div.wrapper-image-dw,#SOHUCS #SOHU_MAIN .module-cmt-box .post-wrap-w div.post-wrap-main,#SOHUCS #SOHU_MAIN .module-cmt-float-bar .wrap-cont-w .cont-form-w div.form-text-w,#SOHUCS #SOHU_MAIN .module-cmt-header .section-cbox-w .block-head-w div.header-login,#SOHUCS #SOHU_MAIN .module-cmt-list .module-cmt-box .post-wrap-w div.post-wrap-main{border:1px solid #e6e6e6!important;border-radius:20px 20px 20px 20px;margin:0!important}#SOHUCS #SOHU_MAIN .module-cmt-box .post-wrap-w .wrap-action-w .action-issue-w .issue-btn-w a .btn-fw{width:130px!important;height:34px!important;line-height:33px!important;font-size:17px!important;background:#5483b1!important;border-radius:20px!important;color:#FFF!important;-webkit-box-shadow:0 -1px 4px #5483b1 inset;box-shadow:0 -1px 10px #5483b1 inset}#SOHUCS #SOHU_MAIN .module-cmt-box .post-wrap-w .wrap-action-w .action-issue-w .issue-btn-w a .btn-fw:before{content:"发表评论"}#SOHUCS #SOHU_MAIN .module-cmt-box .post-wrap-w .wrap-action-w .action-issue-w .issue-btn-w a:hover .btn-fw{color:#40759b!important;background:#FFF!important}#SOHUCS #SOHU_MAIN .module-cmt-list .cmt-list-type .type-lists li{background:none!important;border-bottom:1px solid #e6e6e6}#SOHUCS #SOHU_MAIN .module-cmt-list .cmt-list-type .type-lists li.active{border:1px solid #e6e6e6;border-radius:10px 10px 0 0;border-bottom:none}#SOHUCS #SOHU_MAIN .module-cmt-list .block-title-gw ul li .title-name-gw div.title-name-gw-tag{background:#5483b1!important;border-radius:3px}#SOHUCS #SOHU_MAIN .module-cmt-list .cmt-list-type div.cmt-list-border{background-color:#e6e6e6!important}#SOHUCS #SOHU_MAIN .module-cmt-notice ul.nt-list li.nt-item{border:1px solid #e6e6e6!important}#SOHUCS #SOHU_MAIN .module-cmt-notice ul.nt-list li.nt-item .nt-logo{text-align:center;line-height:40px;border-radius:50%!important;background:#e6e6e6!important}#SOHUCS #SOHU_MAIN .module-cmt-notice ul.nt-list li.nt-item .nt-logo:before{content:"畅";font-size:22px;color:#FFF}#SOHUCS #SOHU_MAIN .module-cmt-notice ul.nt-list li.nt-item a.nt-text,#SOHUCS #SOHU_MAIN .module-cmt-notice ul.nt-list li.nt-item a.nt-text i{color:#5483b1!important}#SOHUCS #SOHU_MAIN .module-cmt-header .section-title-w .title-user-w .user-wrap-w{background:#FFF!important}@media screen and (min-width:900px){#SOHUCS #SOHU_MAIN .module-mobile-cmt-list .list-wrapper-wap .list-container-wap .list-item-wap .list-content-wrapper-wap .cmt-list-image-container .cmt-list-image{max-width: 100%;}}');};
+})();
+function removeElement(_element){
+     var _parentElement = _element.parentNode;
+     if(_parentElement){
+            _parentElement.removeChild(_element);
+     }
+}
+var removeAD = document.createElement("div");
+removeAD.id = 'removeAD';
+var adInterval1 = setInterval(function() {
+  if(document.querySelector("#feedAv")){
+    document.querySelector("[node-type=cmt-list]").appendChild(removeAD);
+    document.querySelector("#removeAD").appendChild(document.querySelector("#feedAv"));
+    removeElement(document.querySelectorAll("#feedAv")[0]);
+    document.querySelector("#removeAD").style.display="none"
+    clearInterval(adInterval1);
+  }
+},1000);
+var adInterval2 = setInterval(function() {
+  if(document.querySelector("#pop_ad")){
+    removeElement(document.querySelector("#pop_ad"));
+    clearInterval(adInterval2);
+  }
+}, 1000);</script><script src="https://assets.changyan.sohu.com/upload/plugins/plugins.count.js"></script></body></html>
