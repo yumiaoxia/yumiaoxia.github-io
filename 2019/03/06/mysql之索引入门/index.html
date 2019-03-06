@@ -1,0 +1,134 @@
+<!DOCTYPE html><html lang="zh-CN,zh-Hans,default"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><meta name="keywords" content="java,软件开发,全栈开发,java开发,Java技术"><title>mysql之索引入门 | Shermanの博客</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">mysql之索引入门</h1><a id="logo" href="/.">Shermanの博客</a><p class="description">轻轻地走过，一路漫长...</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="Arama"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title">mysql之索引入门</h1><div class="post-meta"><a href="/2019/03/06/mysql之索引入门/#comments" class="comment-count"><i id="changyan_count_unit" data-xid="2019/03/06/mysql之索引入门/"></i>留言,<i id="changyan_parti_unit" data-xid="2019/03/06/mysql之索引入门/"></i>参与</a><p><span class="date">Mar 06, 2019</span><span><a href="/categories/数据库-mysql/" class="category">数据库/mysql</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><p>​    在mysql中，所有列类型数据都能被索引，使用索引是改进mysql查询操作性能的最好办法，是数据库优化的重要手段之一。</p>
+<h2 id="索引的特点"><a href="#索引的特点" class="headerlink" title="索引的特点"></a>索引的特点</h2><ul>
+<li><p>一个表最多可有16个索引，最大索引长度是256字节，尽管这可以在编译MySQL时被改变。</p>
+</li>
+<li><p>对于 CHAR 和 VARCHAR 列,你可以索引列的前缀。这更快并且比索引整个列需要较少的磁盘空间。对于 BLOB 和 TEXT 列，你必须索引列的前缀，你不能索引列的全部。</p>
+</li>
+<li><p>MySQL 能在多个列上创建索引，一个索引可以由最多15个列组成。（在CHAR和VARCHAR列上，你也可以使用列的前缀作为一个索引的部分）</p>
+<p>ISAM 表和 MyISAM 表之间的差别：</p>
+<p>索引特点|ISAM 表|MyISAM 表</p>
+</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>索引特点</th>
+<th>ISAM 表</th>
+<th>MyISAM</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NULL 值</td>
+<td>不允许</td>
+<td>允许</td>
+</tr>
+<tr>
+<td>BLOB 和 TEXT 值</td>
+<td>不能索引</td>
+<td>只能索引列的前缀</td>
+</tr>
+<tr>
+<td>每个表中的索引数</td>
+<td>16</td>
+<td>32</td>
+</tr>
+<tr>
+<td>每个索引中的列数</td>
+<td>16</td>
+<td>16</td>
+</tr>
+<tr>
+<td>最大索引行尺寸</td>
+<td>256字节</td>
+<td>500字节</td>
+</tr>
+</tbody>
+</table>
+<p>  索引有如下几种情况：</p>
+<ul>
+<li>INDEX 索引：通常意义的索引，某些情况下 KEY 是它的一个同义词，索引的列可以包含重复的值。</li>
+<li>UNIQUE 索引：唯一索引，保证了列不包含重复的值，对于多列唯一索引，它保证值得组合不重复。</li>
+<li>PRIMARY KEY 索引：和UNIQUE索引类似，可以理解为特殊的 UNIQUE 索引。一个表中只能包含一个PRIMARY KEY，PRIMARY KEY 索引不允许列为空值。</li>
+</ul>
+<h2 id="创建和删除索引"><a href="#创建和删除索引" class="headerlink" title="创建和删除索引"></a>创建和删除索引</h2><h3 id="1-使用-Alter-Table-和-Create-Index-语句"><a href="#1-使用-Alter-Table-和-Create-Index-语句" class="headerlink" title="1. 使用 Alter Table  和 Create Index 语句"></a>1. 使用 Alter Table  和 Create Index 语句</h3><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">ALTER</span> <span class="keyword">TABLE</span> tb_name <span class="keyword">ADD</span> <span class="keyword">INDEX</span> index_name(column_list);</span><br><span class="line"></span><br><span class="line"><span class="keyword">ALTER</span> <span class="keyword">TABLE</span> tb_name <span class="keyword">ADD</span> <span class="keyword">UNIQUE</span> index_name(column_list);</span><br><span class="line"></span><br><span class="line"><span class="keyword">ALTER</span> <span class="keyword">TABLE</span> tb_name <span class="keyword">ADD</span> PRIMARY <span class="keyword">KEY</span> index_name(column_list);</span><br></pre></td></tr></table></figure>
+<p>tb_name 是要添加索引的表名，index_name 是创建的索引名，column_list是列名集合,多个列名使用逗号分隔。</p>
+<p>同样，也可以使用 ALTER TABLE 语句加 DROP 操作符删除索引：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">ALTER</span> <span class="keyword">TABLE</span> tb_name <span class="keyword">DROP</span> <span class="keyword">INDEX</span> index_name;</span><br><span class="line"></span><br><span class="line"><span class="keyword">ALTER</span> <span class="keyword">TABLE</span> tb_name <span class="keyword">DROP</span> PRIMARY <span class="keyword">KEY</span>;</span><br></pre></td></tr></table></figure>
+<p>​    上面第一条语句可以删除各类型索引，第二条语句只在删除 PRIMARY KEY 作用。如果没有明确地创建作为 PRIMARY KEY 的索引，但该表具有一个或多个UNIQUE 索引，则 MySQL将删除 UNIQUE 索引的第一个。</p>
+<p>​    索引依赖于列而存在，如果从表中删除了列，则索引会受到影响。如果所删除的列作为索引的组成部分，则该列会从索引中删除；如果索引的所有列被删除，那么该索引也会被隐式删除。</p>
+<h3 id="2-使用CREATE-DROP-INDEX-创建索引"><a href="#2-使用CREATE-DROP-INDEX-创建索引" class="headerlink" title="2. 使用CREATE/DROP INDEX 创建索引"></a>2. 使用CREATE/DROP INDEX 创建索引</h3><p>CREATE INDEX 是在 MySQL3.23版引入的。标准语法格式如下：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">UNIQUE</span> <span class="keyword">INDEX</span> index_name <span class="keyword">ON</span> tb_name(column_list);</span><br><span class="line"></span><br><span class="line"><span class="keyword">CREATE</span> <span class="keyword">INDEX</span> index_name <span class="keyword">ON</span> tb_name(column_list);</span><br></pre></td></tr></table></figure>
+<p><strong>注意</strong>：不能用 CREATE INDEX 创建PRIMARY KEY 索引。</p>
+<p>DROP INDEX  是在 3.22 中引入的，标准语法格式如下：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">DROP</span> <span class="keyword">INDEX</span> index_name <span class="keyword">ON</span> tb_name;</span><br></pre></td></tr></table></figure>
+<ol start="3">
+<li><p>在创建表时指定索引</p>
+<p>要想创建新表时同时创建索引，指定索引的语句语法如下：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">table</span> tb_name(</span><br><span class="line">...</span><br><span class="line">    <span class="keyword">INDEX</span> index_name(column_list),</span><br><span class="line">    <span class="keyword">key</span> index_name(column_list),</span><br><span class="line">    <span class="keyword">UNIQUE</span> index_name(column_list),</span><br><span class="line">    PRIMARY <span class="keyword">KEY</span> index_name(column_list),</span><br><span class="line">    ...</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+<p>与 ALTER TABLE 一样，索引名对于 INDEX 和 UNIQUE 都是可选的，如果未给出，MySQL将为其选一个。</p>
+<p>当索引的列为单列时，也可以在列定义后指定索引，如下：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">table</span> tb_name(</span><br><span class="line">   column_name type_name PRIMARY <span class="keyword">KEY</span>,</span><br><span class="line">   column_name type_name <span class="keyword">UNIQUE</span></span><br><span class="line">    ...</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+<p>上面 PRIMARY KEY 的指定也可等价于：PRIMARY KEY(column_name)。</p>
+</li>
+</ol>
+<h3 id="3-对串列的前缀进行索引"><a href="#3-对串列的前缀进行索引" class="headerlink" title="3. 对串列的前缀进行索引"></a>3. 对串列的前缀进行索引</h3><p>   在 CREATE TABLE 语句中可以某个串列的前缀进行索引（列值左边的n个字符）。</p>
+<p>   对某个列的前缀进行索引，上面 colum_list 的指定中，column_name改为column_name(n)。如下面的语句：</p>
+   <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> tb_name(</span><br><span class="line">    <span class="keyword">name</span> <span class="built_in">CHAR</span>(<span class="number">30</span>),</span><br><span class="line">    address <span class="built_in">CHAR</span>(<span class="number">60</span>),</span><br><span class="line">    <span class="keyword">INDEX</span>(<span class="keyword">name</span>(<span class="number">10</span>),adress(<span class="number">20</span>))</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+<h2 id="检查表的索引"><a href="#检查表的索引" class="headerlink" title="检查表的索引"></a>检查表的索引</h2><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SHOW</span> <span class="keyword">INDEX</span> <span class="keyword">FROM</span> tb_name;</span><br></pre></td></tr></table></figure>
+<p><strong>THE END!</strong> 本文转自百度文库——MySQL完全手册。</p>
+</div><div class="post-copyright"><blockquote><p>原文作者: Sherman</p><p>原文链接: <a href="https://blogs.yumiaoxia.com/2019/03/06/mysql之索引入门/">https://blogs.yumiaoxia.com/2019/03/06/mysql之索引入门/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"><a href="/tags/mysql/">mysql</a><a href="/tags/索引/">索引</a><a href="/tags/数据库优化/">数据库优化</a></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/03/04/mysql-lianjie/" class="next">理解mysql之内连接，外连接，全连接</a></div><div id="comments"><div id="SOHUCS" sid="2019/03/06/mysql之索引入门/"></div></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#索引的特点"><span class="toc-text">索引的特点</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#创建和删除索引"><span class="toc-text">创建和删除索引</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-使用-Alter-Table-和-Create-Index-语句"><span class="toc-text">1. 使用 Alter Table  和 Create Index 语句</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-使用CREATE-DROP-INDEX-创建索引"><span class="toc-text">2. 使用CREATE/DROP INDEX 创建索引</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-对串列的前缀进行索引"><span class="toc-text">3. 对串列的前缀进行索引</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#检查表的索引"><span class="toc-text">检查表的索引</span></a></li></ol></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/03/06/mysql之索引入门/">mysql之索引入门</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/03/04/mysql-lianjie/">理解mysql之内连接，外连接，全连接</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/03/04/hello-world/">Hello World</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/03/02/github-hexo搭建好看的个人自由博客/">github-hexo搭建好看的个人自由博客</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/03/02/my-first-blog/">my-first-blog </a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/工具/">工具</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据库-mysql/">数据库/mysql</a><span class="category-list-count">2</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"><a href="/tags/mysql/" style="font-size: 15px;">mysql</a> <a href="/tags/数据库/" style="font-size: 15px;">数据库</a> <a href="/tags/索引/" style="font-size: 15px;">索引</a> <a href="/tags/数据库优化/" style="font-size: 15px;">数据库优化</a> <a href="/tags/hexo/" style="font-size: 15px;">hexo</a> <a href="/tags/工具/" style="font-size: 15px;">工具</a> <a href="/tags/个人博客/" style="font-size: 15px;">个人博客</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li></ul></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">Sherman.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script><script>window._config = { showScore: true };
+(function(){ 
+  var appid = 'cyu77I3Js'; 
+  var conf = '6d3a1483ee22bba4eaff12ba9ff036ab'; 
+  var width = window.innerWidth || document.documentElement.clientWidth; 
+  var nodes =document.getElementsByTagName("head")[0]||document.head||document.documentElement;
+  if (/(Android|iPhone|iPad|iPod|iOS)/i.test(navigator.userAgent) && width < 750) {  
+      window.document.write('<script id="changyan_mobile_js" charset="utf-8" type="text/javascript" src="https://changyan.sohu.com/upload/mobile/wap-js/changyan_mobile.js?client_id=' + appid + '&conf=' + conf + '"><\/script>');
+  }
+  else { 
+    var loadJs=function(d,a){
+      var b=document.createElement("script");b.setAttribute("type","text/javascript");
+      b.setAttribute("charset","UTF-8");
+      b.setAttribute("src",d);
+      if(typeof a==="function"){if(window.attachEvent){b.onreadystatechange=function(){var e=b.readyState;if(e==="loaded"||e==="complete"){b.onreadystatechange=null;a()}}}else{b.onload=a}}
+      nodes.appendChild(b)
+    };
+    loadJs("https://changyan.sohu.com/upload/changyan.js",function(){window.changyan.api.config({appid:appid,conf:conf})}); 
+  } 
+  var loadCss = function(cssString){  
+    var style=document.createElement("style");  
+    style.setAttribute("type", "text/css");  
+    if(style.styleSheet){// IE  
+        style.styleSheet.cssText = cssString;  
+    } else {// w3c  
+        var cssText = document.createTextNode(cssString);  
+        style.appendChild(cssText);  
+    }
+    nodes.appendChild(style);
+  }
+  window.onload=function(){loadCss('.module-hot-topic,.module-cmt-float-bar{display:none!important}#SOHUCS #SOHU_MAIN .module-cmt-box .post-wrap-w .wrap-action-w .cbox-prompt-w span.prompt-empty-w,#SOHUCS #SOHU_MAIN .module-cmt-float-bar .wrap-cont-w .cont-form-w .form-text-w span.text-null,#SOHUCS #SOHU_MAIN .module-cmt-float-bar .wrap-cont-w .cont-minwidth-w div.cont-comment-w a.comment-link-w,#SOHUCS #SOHU_MAIN .module-cmt-float-bar .wrap-cont-w .cont-minwidth-w div.cont-comment-w span.comment-text-w,#SOHUCS #SOHU_MAIN .module-cmt-footer .section-service-w div.service-wrap-w a:hover,#SOHUCS #SOHU_MAIN .module-cmt-header .section-cbox-w .block-head-w div.header-login,#SOHUCS #SOHU_MAIN .module-cmt-header .section-title-w .title-user-w .user-wrap-w span.wrap-name-w,#SOHUCS #SOHU_MAIN .module-cmt-list .action-click-gw span.click-disable-eg a em.icon-name-bg,#SOHUCS #SOHU_MAIN .module-cmt-list .block-title-gw ul li div.title-name-gw,#SOHUCS #SOHU_MAIN .module-cmt-list .cmt-list-type .cmt-list-number .comment-number span.cy-number,#SOHUCS #SOHU_MAIN .module-cmt-list .cmt-list-type .cmt-list-number span.comment-number,#SOHUCS #SOHU_MAIN .module-cmt-list .cmt-list-type .type-lists li.active,#SOHUCS #SOHU_MAIN .module-cmt-list .msg-wrap-gw .wrap-action-gw .action-click-gw span a:hover,#SOHUCS #SOHU_MAIN .module-cmt-list .picture-box-gw div.box-action-gw a:hover,#SOHUCS #SOHU_MAIN .module-cmt-list .wrap-action-gw .action-click-gw span a:hover em.icon-name-bg,#SOHUCS #SOHU_MAIN .module-cmt-list .wrap-user-gw span.user-name-gw a{color:#40759b!important}#SOHUCS #SOHU_MAIN .module-cmt-box .post-wrap-w .post-wrap-border-t div.post-wrap-border-t-r,#SOHUCS #SOHU_MAIN .module-cmt-box .post-wrap-w div.post-wrap-border-l,#SOHUCS #SOHU_MAIN .module-cmt-box .post-wrap-w div.post-wrap-border-r{display:none!important}#SOHUCS #SOHU_MAIN .module-cmt-box .post-wrap-w .post-wrap-border-t div.post-wrap-border-t-l{background:#FFF!important;top:-2px!important}#SOHUCS #SOHU_MAIN .module-cmt-box .post-wrap-w .wrap-action-w .action-function-w .uploading-wrapper-dw div.wrapper-image-dw,#SOHUCS #SOHU_MAIN .module-cmt-box .post-wrap-w div.post-wrap-main,#SOHUCS #SOHU_MAIN .module-cmt-float-bar .wrap-cont-w .cont-form-w div.form-text-w,#SOHUCS #SOHU_MAIN .module-cmt-header .section-cbox-w .block-head-w div.header-login,#SOHUCS #SOHU_MAIN .module-cmt-list .module-cmt-box .post-wrap-w div.post-wrap-main{border:1px solid #e6e6e6!important;border-radius:20px 20px 20px 20px;margin:0!important}#SOHUCS #SOHU_MAIN .module-cmt-box .post-wrap-w .wrap-action-w .action-issue-w .issue-btn-w a .btn-fw{width:130px!important;height:34px!important;line-height:33px!important;font-size:17px!important;background:#5483b1!important;border-radius:20px!important;color:#FFF!important;-webkit-box-shadow:0 -1px 4px #5483b1 inset;box-shadow:0 -1px 10px #5483b1 inset}#SOHUCS #SOHU_MAIN .module-cmt-box .post-wrap-w .wrap-action-w .action-issue-w .issue-btn-w a .btn-fw:before{content:"发表评论"}#SOHUCS #SOHU_MAIN .module-cmt-box .post-wrap-w .wrap-action-w .action-issue-w .issue-btn-w a:hover .btn-fw{color:#40759b!important;background:#FFF!important}#SOHUCS #SOHU_MAIN .module-cmt-list .cmt-list-type .type-lists li{background:none!important;border-bottom:1px solid #e6e6e6}#SOHUCS #SOHU_MAIN .module-cmt-list .cmt-list-type .type-lists li.active{border:1px solid #e6e6e6;border-radius:10px 10px 0 0;border-bottom:none}#SOHUCS #SOHU_MAIN .module-cmt-list .block-title-gw ul li .title-name-gw div.title-name-gw-tag{background:#5483b1!important;border-radius:3px}#SOHUCS #SOHU_MAIN .module-cmt-list .cmt-list-type div.cmt-list-border{background-color:#e6e6e6!important}#SOHUCS #SOHU_MAIN .module-cmt-notice ul.nt-list li.nt-item{border:1px solid #e6e6e6!important}#SOHUCS #SOHU_MAIN .module-cmt-notice ul.nt-list li.nt-item .nt-logo{text-align:center;line-height:40px;border-radius:50%!important;background:#e6e6e6!important}#SOHUCS #SOHU_MAIN .module-cmt-notice ul.nt-list li.nt-item .nt-logo:before{content:"畅";font-size:22px;color:#FFF}#SOHUCS #SOHU_MAIN .module-cmt-notice ul.nt-list li.nt-item a.nt-text,#SOHUCS #SOHU_MAIN .module-cmt-notice ul.nt-list li.nt-item a.nt-text i{color:#5483b1!important}#SOHUCS #SOHU_MAIN .module-cmt-header .section-title-w .title-user-w .user-wrap-w{background:#FFF!important}@media screen and (min-width:900px){#SOHUCS #SOHU_MAIN .module-mobile-cmt-list .list-wrapper-wap .list-container-wap .list-item-wap .list-content-wrapper-wap .cmt-list-image-container .cmt-list-image{max-width: 100%;}}');};
+})();
+function removeElement(_element){
+     var _parentElement = _element.parentNode;
+     if(_parentElement){
+            _parentElement.removeChild(_element);
+     }
+}
+var removeAD = document.createElement("div");
+removeAD.id = 'removeAD';
+var adInterval1 = setInterval(function() {
+  if(document.querySelector("#feedAv")){
+    document.querySelector("[node-type=cmt-list]").appendChild(removeAD);
+    document.querySelector("#removeAD").appendChild(document.querySelector("#feedAv"));
+    removeElement(document.querySelectorAll("#feedAv")[0]);
+    document.querySelector("#removeAD").style.display="none"
+    clearInterval(adInterval1);
+  }
+},1000);
+var adInterval2 = setInterval(function() {
+  if(document.querySelector("#pop_ad")){
+    removeElement(document.querySelector("#pop_ad"));
+    clearInterval(adInterval2);
+  }
+}, 1000);</script><script src="https://assets.changyan.sohu.com/upload/plugins/plugins.count.js"></script></body></html>
